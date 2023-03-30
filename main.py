@@ -43,7 +43,6 @@ def run(
         augment=False,  # augmented inference
         visualize=False,  # visualize features
         update=False,  # update all models
-        project=ROOT / '',  # save results to project/name
         name='output',  # save results to project/name
         half=False,  # use FP16 half-precision inference
         dnn=False,  # use OpenCV DNN for ONNX inference
@@ -58,7 +57,7 @@ def run(
         source = check_file(source)  # download
 
     # Directories
-    save_dir = increment_path(Path(project) / name, exist_ok=False)  # increment run
+    save_dir = increment_path(Path(name), exist_ok=update)  # increment run
 
     # Load model
     device = select_device(device)
@@ -126,19 +125,12 @@ def run(
                 # Mask plotting ----------------------------------------------------------------------------------------
             
                 # Write results
-                for j, (*xyxy, conf, cls) in enumerate(reversed(det[:, :6])):
+                for j, (conf, cls) in enumerate(reversed(det[:, :6])):
                     if save_txt:  # Write to file
                         segj = segments[j].reshape(-1)  # (n,2) to (n*2)
                         line = (cls, *segj, conf) if save_conf else (cls, *segj)  # label format
                         with open(f'{txt_path}.txt', 'a') as f:
                             f.write(('%g ' * len(line)).rstrip() % line + '\n')
-
-                    #if save_img or save_crop or view_img:  # Add bbox to image
-                    #    c = int(cls)  # integer class
-                    #    label = None                        
-                    #    annotator.box_label(xyxy, label, color=colors(c, True))
-                    if save_crop:
-                        save_one_box(xyxy, imc, file=save_dir / 'crops' / names[c] / f'{p.stem}.jpg', BGR=True)
 
             # Stream results
             im0 = annotator.result()
@@ -202,7 +194,6 @@ def parse_opt():
     parser.add_argument('--visualize', action='store_true', help='visualize features')
     parser.add_argument('--update', action='store_true', help='update all models')
     parser.add_argument('--project', default=ROOT / 'output', help='save results to project/name')
-    parser.add_argument('--name', default='exp', help='save results to project/name')
     parser.add_argument('--half', action='store_true', help='use FP16 half-precision inference')
     parser.add_argument('--dnn', action='store_true', help='use OpenCV DNN for ONNX inference')
     opt = parser.parse_args()

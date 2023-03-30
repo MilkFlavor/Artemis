@@ -1148,7 +1148,7 @@ def increment_path(path, exist_ok=False, mkdir=False):
         # Increment file or directory path, i.e. runs/exp --> runs/exp{sep}2, runs/exp{sep}3, ... etc.
         path = Path(path)  # os-agnostic
         if path.exists() and not exist_ok:
-            path = (path.with_suffix(''), path.suffix) if path.is_file() else (path, '')
+            path = (path.with_suffix(''), path.suffix)  # split path and suffix
 
             # Method 1
             for n in range(2, 9999):
