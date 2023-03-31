@@ -64,7 +64,6 @@ def run(
     # Dataloader
     dataset = LoadImages(source, img_size=imgsz, stride=stride, auto=pt)
     bs = 1  # batch_size
-    vid_path, vid_writer = [None] * bs, [None] * bs
 
     # Run inference
     model.warmup(imgsz=(1 if pt else bs, 3, *imgsz))  # warmup
@@ -85,12 +84,12 @@ def run(
 
         # NMS
         with dt[2]:
-            pred = non_max_suppression(pred, 0.2, iou_thres, classes, agnostic_nms, max_det=max_det, nm=32) # conf=0.05,
+            pred = non_max_suppression(pred, 0.05, iou_thres, classes, agnostic_nms, max_det=max_det, nm=32) # conf=0.05,
 
         # Process predictions
         for i, det in enumerate(pred):  # per image
             seen += 1
-            p, im0, frame = path, im0s.copy(), getattr(dataset, 'frame', 0)
+            p, im0 = path, im0s.copy()
 
             p = Path(p)  # to Path
             save_path = str(save_dir / p.name)  # im.jpg
