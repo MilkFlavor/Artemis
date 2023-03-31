@@ -18,7 +18,7 @@ from models.common import DetectMultiBackend
 from utils.dataloaders import IMG_FORMATS, VID_FORMATS, LoadImages
 from utils.general import (LOGGER, Profile, check_file, check_img_size, check_requirements, colorstr, cv2,
                            increment_path, non_max_suppression,scale_segments, print_args, scale_coords, strip_optimizer)
-from utils.plots import Annotator, colors, save_one_box
+from utils.plots import Annotator, colors
 from utils.segment.general import process_mask, scale_masks, masks2segments
 from utils.segment.plots import plot_masks
 from utils.torch_utils import select_device, smart_inference_mode
@@ -31,18 +31,17 @@ def run(
         data=ROOT / 'data/coco128.yaml',  # dataset.yaml path
         imgsz=(1280, 1280),  # inference size (height, width)
         iou_thres=0.5,  # NMS IOU threshold
-        max_det=1000,  # maximum detections per image
+        max_det=20,  # maximum detections per image
         device='',  # cuda device, i.e. 0 or 0,1,2,3 or cpu
         view_img=True,  # show results
         save_txt=False,  # save results to *.txt
         save_conf=False,  # save confidences in --save-txt labels
-        save_crop=False,  # save cropped prediction boxes
         nosave=False,  # do not save images/videos
         classes=None,  # filter by class: --class 0, or --class 0 2 3
         agnostic_nms=False,  # class-agnostic NMS
         augment=False,  # augmented inference
         visualize=False,  # visualize features
-        update=False,  # update all models
+        update=True,  # update all models
         name='output',  # save results to project/name
         half=False,  # use FP16 half-precision inference
         dnn=False,  # use OpenCV DNN for ONNX inference
@@ -89,7 +88,7 @@ def run(
 
         # NMS
         with dt[2]:
-            pred = non_max_suppression(pred, 0.05, iou_thres, classes, agnostic_nms, max_det=max_det, nm=32) # conf=0.05,
+            pred = non_max_suppression(pred, 0.2, iou_thres, classes, agnostic_nms, max_det=max_det, nm=32) # conf=0.05,
 
         # Process predictions
         for i, det in enumerate(pred):  # per image
@@ -100,7 +99,6 @@ def run(
             save_path = str(save_dir / p.name)  # im.jpg
             txt_path = str(save_dir / 'labels' / p.stem) + ('' if dataset.mode == 'image' else f'_{frame}')  # im.txt
             s += '%gx%g ' % im.shape[2:]  # print string
-            imc = im0.copy() if save_crop else im0  # for save_crop
             annotator = Annotator(im0, line_width=0, example=str(names))
             if len(det):
                 masks = process_mask(proto[i], det[:, 6:], det[:, :4], im.shape[2:], upsample=True)  # HWC
@@ -125,10 +123,10 @@ def run(
                 # Mask plotting ----------------------------------------------------------------------------------------
             
                 # Write results
-                for j, (conf, cls) in enumerate(reversed(det[:, :6])):
+                for cls in reversed(det):
                     if save_txt:  # Write to file
-                        segj = segments[j].reshape(-1)  # (n,2) to (n*2)
-                        line = (cls, *segj, conf) if save_conf else (cls, *segj)  # label format
+                        segj = segments[int(cls)]
+                        line = (cls, *segj) if save_conf else (cls, *segj)  # label format
                         with open(f'{txt_path}.txt', 'a') as f:
                             f.write(('%g ' * len(line)).rstrip() % line + '\n')
 
@@ -186,14 +184,12 @@ def parse_opt():
     parser.add_argument('--view-img', action='store_true', help='show results')
     parser.add_argument('--save-txt', action='store_true', help='save results to *.txt')
     parser.add_argument('--save-conf', action='store_true', help='save confidences in --save-txt labels')
-    parser.add_argument('--save-crop', action='store_true', help='save cropped prediction boxes')
     parser.add_argument('--nosave', action='store_true', help='do not save images/videos')
     parser.add_argument('--classes', nargs='+', type=int, help='filter by class: --classes 0, or --classes 0 2 3')
     parser.add_argument('--agnostic-nms', action='store_true', help='class-agnostic NMS')
     parser.add_argument('--augment', action='store_true', help='augmented inference')
     parser.add_argument('--visualize', action='store_true', help='visualize features')
     parser.add_argument('--update', action='store_true', help='update all models')
-    parser.add_argument('--project', default=ROOT / 'output', help='save results to project/name')
     parser.add_argument('--half', action='store_true', help='use FP16 half-precision inference')
     parser.add_argument('--dnn', action='store_true', help='use OpenCV DNN for ONNX inference')
     opt = parser.parse_args()
